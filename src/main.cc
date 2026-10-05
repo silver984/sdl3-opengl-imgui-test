@@ -11,7 +11,7 @@
 
 int main() {
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
-		std::println("SDL_Init failed | what: {}\n", SDL_GetError());
+		std::println("SDL_Init failed | what: {}", SDL_GetError());
 		return 1;
 	}
 
@@ -22,7 +22,7 @@ int main() {
 	SDL_Window* window = SDL_CreateWindow("SDL3 + OpenGL + ImGui Test", 1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
 	if (!window) {
-		std::println("SDL_CreateWindow failed | what: {}\n", SDL_GetError());
+		std::println("SDL_CreateWindow failed | what: {}", SDL_GetError());
 		return 1;
 	}
 
@@ -34,7 +34,7 @@ int main() {
 	SDL_GLContext ctx = SDL_GL_CreateContext(window);
 
 	if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
-		std::println("glad failed to load GL\n");
+		std::println("glad failed to load GL");
 		return 1;
 	}
 
