@@ -14,9 +14,10 @@ namespace solum::_gl_wrap {
 
 constexpr std::string_view VERTEX_SHADER_ = R"(#version 330 core
 layout(location = 0) in vec2 a_pos;
-uniform mat4 u_proj;
+uniform mat3 u_proj;
 void main() {
-	gl_Position = u_proj * vec4(a_pos, 0.0, 1.0);
+	vec3 pos = u_proj * vec3(a_pos, 1.0);
+	gl_Position = vec4(pos.xy, 0.0, 1.0);
 })";
 
 constexpr std::string_view FRAGMENT_SHADER_ = R"(#version 330 core
@@ -123,10 +124,9 @@ int main() {
 	glUseProgram(program);
 
 	constexpr float PROJECTION[] = {
-	        2.f / 1280.f, 0.f,          0.f,  0.f, //
-	        0.f,          -2.f / 720.f, 0.f,  0.f, //
-	        0.f,          0.f,          -1.f, 0.f, //
-	        -1.f,         1.f,          0.f,  1.f, //
+	        2.f / 1280.f, 0.f,          0.f, //
+	        0.f,          -2.f / 720.f, 0.f, //
+	        -1.f,         1.f,          1.f, //
 	};
 
 	// a 300x300 square
@@ -249,7 +249,7 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUniformMatrix4fv(u_proj, 1, GL_FALSE, PROJECTION);
+		glUniformMatrix3fv(u_proj, 1, GL_FALSE, PROJECTION);
 		glUniform4f(u_color, 1.f, 0.f, 0.f, 1.f);
 
 		glBindVertexArray(square_vao);
