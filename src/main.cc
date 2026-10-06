@@ -107,8 +107,6 @@ int main() {
 		return 1;
 	}
 
-	IMGUI_CHECKVERSION();
-
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
 
