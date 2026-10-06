@@ -130,34 +130,67 @@ int main() {
 	};
 
 	// a 300x300 square
-	constexpr float VERTICES[8] = {
-	        0.f,   0.f,   // top left
-	        300.f, 0.f,   // top right
-	        300.f, 300.f, // bottom right
-	        0.f,   300.f, // bottom left
+	constexpr float SQUARE_VERTICES[8] = {
+	        0.f,   0.f,   //
+	        300.f, 0.f,   //
+	        300.f, 300.f, //
+	        0.f,   300.f, //
 	};
 
-	// ???
-	constexpr std::uint32_t INDICES[6] = {0, 1, 2, 2, 3, 0};
+	constexpr std::uint32_t SQUARE_INDICES[6] = {
+	        0, 1, 2, //
+	        2, 3, 0  //
+	};
 
-	std::uint32_t vao, vbo, ebo;
+	std::uint32_t square_vao{}, square_vbo{}, square_ebo{};
 
-	glGenBuffers(1, &vbo);
-	glGenBuffers(1, &ebo);
+	glGenVertexArrays(1, &square_vao);
+	glBindVertexArray(square_vao);
 
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), (void const*)VERTICES, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(std::uint32_t), (void const*)INDICES, GL_STATIC_DRAW);
-
+	glGenBuffers(1, &square_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, square_vbo);
+	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), (void const*)SQUARE_VERTICES, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	glGenBuffers(1, &square_ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, square_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(std::uint32_t), (void const*)SQUARE_INDICES, GL_STATIC_DRAW);
+
 	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	constexpr float TRIANGLE_VERTICES[6] = {
+	        450.f, 0.f,   //
+	        600.f, 300.f, //
+	        300.f, 300.f, //
+	};
+
+	constexpr std::uint32_t TRIANGLE_INDICES[3] = {
+	        0,
+	        1,
+	        2,
+	};
+
+	std::uint32_t triangle_vao{}, triangle_vbo{}, triangle_ebo{};
+
+	glGenVertexArrays(1, &triangle_vao);
+	glBindVertexArray(triangle_vao);
+
+	glGenBuffers(1, &triangle_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, triangle_vbo);
+	glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), (void const*)TRIANGLE_VERTICES, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glGenBuffers(1, &triangle_ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangle_ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * sizeof(std::uint32_t), (void const*)TRIANGLE_INDICES, GL_STATIC_DRAW);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	// ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -223,8 +256,13 @@ int main() {
 		glUniformMatrix4fv(u_proj, 1, GL_FALSE, PROJECTION);
 		glUniform4f(u_color, 1.f, 0.f, 0.f, 1.f);
 
-		glBindVertexArray(vao);
+		glBindVertexArray(square_vao);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(0);
+
+		glBindVertexArray(triangle_vao);
+		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(0);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -247,9 +285,14 @@ int main() {
 
 	// cleanup -------------------------------------------------------------------------------------------------------------------------
 
-	glDeleteVertexArrays(1, &vao);
-	glDeleteBuffers(1, &vbo);
-	glDeleteBuffers(1, &ebo);
+	glDeleteVertexArrays(1, &triangle_vao);
+	glDeleteBuffers(1, &triangle_vbo);
+	glDeleteBuffers(1, &triangle_ebo);
+
+	glDeleteVertexArrays(1, &square_vao);
+	glDeleteBuffers(1, &square_vbo);
+	glDeleteBuffers(1, &square_ebo);
+
 	glDeleteProgram(program);
 
 	ImGui_ImplOpenGL3_Shutdown();
