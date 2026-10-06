@@ -8,46 +8,67 @@
 
 #include <cstdint>
 #include <print>
+#include <string_view>
 
-namespace _slv_glwrap {
+namespace solum::_gl_wrap {
 
-constexpr char const* VERT_SRC_ = R"(
-#version 330 core
+constexpr std::string_view VERTEX_SHADER_ = R"(#version 330 core
 layout(location = 0) in vec2 a_pos;
 uniform mat4 u_proj;
 void main() {
 	gl_Position = u_proj * vec4(a_pos, 0.0, 1.0);
-}
-)";
+})";
 
-constexpr char const* FRAG_SRC_ = R"(
-#version 330 core
+constexpr std::string_view FRAGMENT_SHADER_ = R"(#version 330 core
 out vec4 frag_color;
 uniform vec4 u_color;
 void main() {
 	frag_color = u_color;
-}
-)";
+})";
 
-GLuint compile_shader_(GLenum type, char const* src) {
-	GLuint out = glCreateShader(type);
-	glShaderSource(out, 1, &src, nullptr);
+std::uint32_t compile_shader_(std::uint32_t type, std::string_view src) {
+	std::uint32_t out = glCreateShader(type);
+	char const* cstr  = src.data();
+
+	glShaderSource(out, 1, &cstr, nullptr);
 	glCompileShader(out);
-	glGetShaderiv(out, 0, nullptr);
+
+	std::int32_t result{};
+	glGetShaderiv(out, GL_COMPILE_STATUS, &result);
+
+	if (result == GL_FALSE) {
+		std::int32_t len{};
+		glGetShaderiv(out, GL_INFO_LOG_LENGTH, &len);
+		char* msg = (char*)alloca(len * sizeof(char));
+		glGetShaderInfoLog(out, len, &len, msg);
+		std::println("Failed to compile shader | what: {}", msg);
+		return 0;
+	}
+
 	return out;
 }
 
-GLuint create_program_(char const* vs_src, char const* fs_src) {
-	GLuint vs  = compile_shader_(GL_VERTEX_SHADER, vs_src);
-	GLuint fs  = compile_shader_(GL_FRAGMENT_SHADER, fs_src);
-	GLuint out = glCreateProgram();
+std::uint32_t create_program_(std::string_view vs_src, std::string_view fs_src) {
+	std::uint32_t out = glCreateProgram();
+	std::uint32_t vs  = compile_shader_(GL_VERTEX_SHADER, vs_src);
+	std::uint32_t fs  = compile_shader_(GL_FRAGMENT_SHADER, fs_src);
 
 	glAttachShader(out, vs);
 	glAttachShader(out, fs);
 
 	glLinkProgram(out);
 
-	glGetProgramiv(out, 0, nullptr);
+	std::int32_t result{};
+	glGetProgramiv(out, GL_LINK_STATUS, &result);
+
+	if (result == GL_FALSE) {
+		std::int32_t len{};
+		glGetProgramiv(out, GL_INFO_LOG_LENGTH, &len);
+		char* msg = (char*)alloca(len * sizeof(char));
+		glGetProgramInfoLog(out, len, &len, msg);
+		std::println("Failed to link program | what: {}", msg);
+		return 0;
+	};
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
@@ -55,7 +76,7 @@ GLuint create_program_(char const* vs_src, char const* fs_src) {
 	return out;
 }
 
-} // namespace _slv_glwrap
+} // namespace solum::_gl_wrap
 
 int main() {
 	if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -98,6 +119,11 @@ int main() {
 
 	// setup ---------------------------------------------------------------------------------------------------------------------------
 
+	std::uint32_t program = solum::_gl_wrap::create_program_(solum::_gl_wrap::VERTEX_SHADER_, solum::_gl_wrap::FRAGMENT_SHADER_);
+	std::int32_t u_proj   = glGetUniformLocation(program, "u_proj");
+	std::int32_t u_color  = glGetUniformLocation(program, "u_color");
+	glUseProgram(program);
+
 	constexpr float PROJECTION[16] = {
 	        2.f / 1280.f, 0.f,          0.f,  0.f, //
 	        0.f,          -2.f / 720.f, 0.f,  0.f, //
@@ -105,21 +131,18 @@ int main() {
 	        -1.f,         1.f,          0.f,  1.f, //
 	};
 
-	GLuint prog   = _slv_glwrap::create_program_(_slv_glwrap::VERT_SRC_, _slv_glwrap::FRAG_SRC_);
-	GLint u_proj  = glGetUniformLocation(prog, "u_proj");
-	GLint u_color = glGetUniformLocation(prog, "u_color");
-
 	// a 300x300 square
-	float const vertices[] = {
+	constexpr float VERTICES[8] = {
 	        0.f,   0.f,   // top left
 	        300.f, 0.f,   // top right
 	        300.f, 300.f, // bottom right
 	        0.f,   300.f, // bottom left
 	};
 
-	uint32_t const indices[] = {0, 1, 2, 2, 3, 0};
+	// ???
+	constexpr std::uint32_t INDICES[6] = {0, 1, 2, 2, 3, 0};
 
-	GLuint vao, vbo, ebo;
+	std::uint32_t vao, vbo, ebo;
 
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &ebo);
@@ -128,10 +151,10 @@ int main() {
 	glBindVertexArray(vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), (void*)vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), (void const*)VERTICES, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), (void*)indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(std::uint32_t), (void const*)INDICES, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -140,7 +163,7 @@ int main() {
 
 	// ---------------------------------------------------------------------------------------------------------------------------------
 
-	uint64_t next_frame_ns = SDL_GetTicksNS();
+	std::uint64_t next_frame_ns = SDL_GetTicksNS();
 
 	bool running          = true;
 	bool window_minimized = false;
@@ -172,9 +195,9 @@ int main() {
 		}
 
 		if (window_minimized) {
-			constexpr uint64_t DELAY_NS = 100'000'000; // 100MS
+			constexpr std::uint64_t DELAY_NS = 100'000'000; // 100MS
 			SDL_DelayNS(DELAY_NS);
-			next_frame_ns = SDL_GetTicksNS();          // dont burst on restore
+			next_frame_ns = SDL_GetTicksNS();               // dont burst on restore
 			continue;
 		}
 
@@ -197,10 +220,8 @@ int main() {
 
 		// render ------------------------------------------------------------------------------------------------------------------
 
-		glClearColor(0.f, 0.f, 0.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glUseProgram(prog);
 		glUniformMatrix4fv(u_proj, 1, GL_FALSE, PROJECTION);
 		glUniform4f(u_color, 1.f, 0.f, 0.f, 1.f);
 
@@ -213,11 +234,11 @@ int main() {
 
 		// -------------------------------------------------------------------------------------------------------------------------
 
-		constexpr uint8_t MAX_FPS   = 120;
-		constexpr uint64_t FRAME_NS = 1'000'000'000 / MAX_FPS; // 1S / 120FPS
+		constexpr std::uint8_t MAX_FPS   = 120;
+		constexpr std::uint64_t FRAME_NS = 1'000'000'000 / MAX_FPS; // 1S / 120FPS
 
 		next_frame_ns += FRAME_NS;
-		uint64_t now_ns = SDL_GetTicksNS();
+		std::uint64_t now_ns = SDL_GetTicksNS();
 
 		if (now_ns < next_frame_ns) {
 			SDL_DelayPrecise(next_frame_ns - now_ns);
@@ -226,10 +247,12 @@ int main() {
 		}
 	}
 
+	// cleanup -------------------------------------------------------------------------------------------------------------------------
+
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
 	glDeleteBuffers(1, &ebo);
-	glDeleteProgram(prog);
+	glDeleteProgram(program);
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
