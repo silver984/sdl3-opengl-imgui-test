@@ -167,11 +167,7 @@ int main() {
 	        300.f, 300.f, //
 	};
 
-	constexpr std::uint32_t TRIANGLE_INDICES[3] = {
-	        0,
-	        1,
-	        2,
-	};
+	constexpr std::uint32_t TRIANGLE_INDICES[3] = {0, 1, 2};
 
 	std::uint32_t triangle_vao{}, triangle_vbo{}, triangle_ebo{};
 
@@ -259,6 +255,8 @@ int main() {
 		glBindVertexArray(square_vao);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 		glBindVertexArray(0);
+
+		glUniform4f(u_color, 0.f, 1.f, 0.f, 1.f);
 
 		glBindVertexArray(triangle_vao);
 		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
