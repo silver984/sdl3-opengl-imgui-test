@@ -216,7 +216,13 @@ int main() {
 				}
 				break;
 			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-				glViewport(0, 0, event.window.data1, event.window.data2);
+				std::int32_t w = event.window.data1, h = event.window.data2;
+				std::int32_t vw = w, vh = (std::int32_t)(w / ASPECT_RATIO);
+				if (vh > h) {
+					vh = h;
+					vw = (std::int32_t)(h * ASPECT_RATIO);
+				}
+				glViewport((w - vw) / 2, (h - vh) / 2, vw, vh);
 				break;
 			}
 		}
