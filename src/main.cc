@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <print>
 #include <string_view>
+#include <vector>
 
 namespace solum::_gl_wrap {
 
@@ -27,18 +28,18 @@ void main() {
 	frag_color = u_color;
 })";
 
-std::uint32_t compile_shader_(std::uint32_t type, std::string_view src) {
-	std::uint32_t out = glCreateShader(type);
-	char const* cstr  = src.data();
+uint32_t compile_shader_(uint32_t type, std::string_view src) {
+	uint32_t out     = glCreateShader(type);
+	char const* cstr = src.data();
 
 	glShaderSource(out, 1, &cstr, nullptr);
 	glCompileShader(out);
 
-	std::int32_t result{};
+	int32_t result{};
 	glGetShaderiv(out, GL_COMPILE_STATUS, &result);
 
 	if (result == GL_FALSE) {
-		std::int32_t len{};
+		int32_t len{};
 		glGetShaderiv(out, GL_INFO_LOG_LENGTH, &len);
 		char* msg = (char*)alloca(len * sizeof(char));
 		glGetShaderInfoLog(out, len, &len, msg);
@@ -49,21 +50,21 @@ std::uint32_t compile_shader_(std::uint32_t type, std::string_view src) {
 	return out;
 }
 
-std::uint32_t create_program_(std::string_view vs_src, std::string_view fs_src) {
-	std::uint32_t out = glCreateProgram();
-	std::uint32_t vs  = compile_shader_(GL_VERTEX_SHADER, vs_src);
-	std::uint32_t fs  = compile_shader_(GL_FRAGMENT_SHADER, fs_src);
+uint32_t create_program_(std::string_view vs_src, std::string_view fs_src) {
+	uint32_t out = glCreateProgram();
+	uint32_t vs  = compile_shader_(GL_VERTEX_SHADER, vs_src);
+	uint32_t fs  = compile_shader_(GL_FRAGMENT_SHADER, fs_src);
 
 	glAttachShader(out, vs);
 	glAttachShader(out, fs);
 
 	glLinkProgram(out);
 
-	std::int32_t result{};
+	int32_t result{};
 	glGetProgramiv(out, GL_LINK_STATUS, &result);
 
 	if (result == GL_FALSE) {
-		std::int32_t len{};
+		int32_t len{};
 		glGetProgramiv(out, GL_INFO_LOG_LENGTH, &len);
 		char* msg = (char*)alloca(len * sizeof(char));
 		glGetProgramInfoLog(out, len, &len, msg);
@@ -118,10 +119,9 @@ int main() {
 
 	// setup ---------------------------------------------------------------------------------------------------------------------------
 
-	std::uint32_t program = solum::_gl_wrap::create_program_(solum::_gl_wrap::VERTEX_SHADER_, solum::_gl_wrap::FRAGMENT_SHADER_);
-	std::int32_t u_proj   = glGetUniformLocation(program, "u_proj");
-	std::int32_t u_color  = glGetUniformLocation(program, "u_color");
-	glUseProgram(program);
+	uint32_t program = solum::_gl_wrap::create_program_(solum::_gl_wrap::VERTEX_SHADER_, solum::_gl_wrap::FRAGMENT_SHADER_);
+	int32_t u_proj   = glGetUniformLocation(program, "u_proj");
+	int32_t u_color  = glGetUniformLocation(program, "u_color");
 
 	constexpr float PROJECTION[] = {
 	        2.f / 1280.f, 0.f,          0.f, //
@@ -129,7 +129,9 @@ int main() {
 	        -1.f,         1.f,          1.f, //
 	};
 
-	// a 300x300 square
+	std::vector<float> all_vertices;
+	std::vector<uint32_t> all_indices;
+
 	constexpr float SQUARE_VERTICES[] = {
 	        0.f,   0.f,   //
 	        300.f, 0.f,   //
@@ -137,29 +139,10 @@ int main() {
 	        0.f,   300.f, //
 	};
 
-	constexpr std::uint32_t SQUARE_INDICES[] = {
+	constexpr uint32_t SQUARE_INDICES[] = {
 	        0, 1, 2, //
-	        2, 3, 0  //
+	        2, 3, 0, //
 	};
-
-	std::uint32_t square_vao{}, square_vbo{}, square_ebo{};
-
-	glGenVertexArrays(1, &square_vao);
-	glBindVertexArray(square_vao);
-
-	glGenBuffers(1, &square_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, square_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(SQUARE_VERTICES), SQUARE_VERTICES, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &square_ebo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, square_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(SQUARE_INDICES), SQUARE_INDICES, GL_STATIC_DRAW);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	constexpr float TRIANGLE_VERTICES[] = {
 	        450.f, 0.f,   //
@@ -167,22 +150,28 @@ int main() {
 	        300.f, 300.f, //
 	};
 
-	constexpr std::uint32_t TRIANGLE_INDICES[] = {0, 1, 2};
+	constexpr uint32_t TRIANGLE_INDICES[] = {4, 5, 6};
 
-	std::uint32_t triangle_vao{}, triangle_vbo{}, triangle_ebo{};
+	all_vertices.append_range(SQUARE_VERTICES);
+	all_vertices.append_range(TRIANGLE_VERTICES);
 
-	glGenVertexArrays(1, &triangle_vao);
-	glBindVertexArray(triangle_vao);
+	all_indices.append_range(SQUARE_INDICES);
+	all_indices.append_range(TRIANGLE_INDICES);
 
-	glGenBuffers(1, &triangle_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, triangle_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(TRIANGLE_VERTICES), TRIANGLE_VERTICES, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	uint32_t vao{}, vbo{}, ebo{};
+
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, all_vertices.size() * sizeof(float), all_vertices.data(), GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 	glEnableVertexAttribArray(0);
 
-	glGenBuffers(1, &triangle_ebo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, triangle_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(TRIANGLE_INDICES), TRIANGLE_INDICES, GL_STATIC_DRAW);
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, all_indices.size() * sizeof(uint32_t), all_indices.data(), GL_STATIC_DRAW);
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -190,7 +179,7 @@ int main() {
 
 	// ---------------------------------------------------------------------------------------------------------------------------------
 
-	std::uint64_t next_frame_ns = SDL_GetTicksNS();
+	uint64_t next_frame_ns = SDL_GetTicksNS();
 
 	bool running          = true;
 	bool window_minimized = false;
@@ -216,21 +205,26 @@ int main() {
 				}
 				break;
 			case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-				std::int32_t w = event.window.data1, h = event.window.data2;
-				std::int32_t vw = w, vh = (std::int32_t)(w / ASPECT_RATIO);
+				int32_t w = event.window.data1;
+				int32_t h = event.window.data2;
+
+				int32_t vw = w;
+				int32_t vh = (int32_t)(w / ASPECT_RATIO);
+
 				if (vh > h) {
 					vh = h;
-					vw = (std::int32_t)(h * ASPECT_RATIO);
+					vw = (int32_t)(h * ASPECT_RATIO);
 				}
+
 				glViewport((w - vw) / 2, (h - vh) / 2, vw, vh);
 				break;
 			}
 		}
 
 		if (window_minimized) {
-			constexpr std::uint64_t DELAY_NS = 100'000'000; // 100MS
+			constexpr uint64_t DELAY_NS = 100'000'000; // 100MS
 			SDL_DelayNS(DELAY_NS);
-			next_frame_ns = SDL_GetTicksNS();               // dont burst on restore
+			next_frame_ns = SDL_GetTicksNS();          // dont burst on restore
 			continue;
 		}
 
@@ -255,18 +249,15 @@ int main() {
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		glUseProgram(program);
 		glUniformMatrix3fv(u_proj, 1, GL_FALSE, PROJECTION);
-		glUniform4f(u_color, 1.f, 0.f, 0.f, 1.f);
+		glUniform4f(u_color, 1.f, 1.f, 1.f, 1.f);
 
-		glBindVertexArray(square_vao);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(vao);
+		glDrawElements(GL_TRIANGLES, all_indices.size(), GL_UNSIGNED_INT, nullptr);
 		glBindVertexArray(0);
 
-		glUniform4f(u_color, 0.f, 1.f, 0.f, 1.f);
-
-		glBindVertexArray(triangle_vao);
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-		glBindVertexArray(0);
+		glUseProgram(0);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -274,11 +265,11 @@ int main() {
 
 		// -------------------------------------------------------------------------------------------------------------------------
 
-		constexpr std::uint8_t MAX_FPS   = 120;
-		constexpr std::uint64_t FRAME_NS = 1'000'000'000 / MAX_FPS; // 1S / 120FPS
+		constexpr uint8_t MAX_FPS   = 120;
+		constexpr uint64_t FRAME_NS = 1'000'000'000 / MAX_FPS; // 1S / 120FPS
 
 		next_frame_ns += FRAME_NS;
-		std::uint64_t now_ns = SDL_GetTicksNS();
+		uint64_t now_ns = SDL_GetTicksNS();
 
 		if (now_ns < next_frame_ns) {
 			SDL_DelayPrecise(next_frame_ns - now_ns);
@@ -289,13 +280,9 @@ int main() {
 
 	// cleanup -------------------------------------------------------------------------------------------------------------------------
 
-	glDeleteVertexArrays(1, &triangle_vao);
-	glDeleteBuffers(1, &triangle_vbo);
-	glDeleteBuffers(1, &triangle_ebo);
-
-	glDeleteVertexArrays(1, &square_vao);
-	glDeleteBuffers(1, &square_vbo);
-	glDeleteBuffers(1, &square_ebo);
+	glDeleteVertexArrays(1, &vao);
+	glDeleteBuffers(1, &vbo);
+	glDeleteBuffers(1, &ebo);
 
 	glDeleteProgram(program);
 
